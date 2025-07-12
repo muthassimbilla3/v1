@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase, Proxy } from '../lib/supabase';
-import { Download, FileText, FileSpreadsheet, Copy, Zap } from 'lucide-react';
+import { Download, FileText, FileSpreadsheet, Copy, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
 
@@ -10,9 +10,6 @@ export const Home: React.FC = () => {
   const [amount, setAmount] = useState(15);
   const [proxies, setProxies] = useState<Proxy[]>([]);
   const [loading, setLoading] = useState(false);
-  const [loadingAll, setLoadingAll] = useState(false);
-  const [showGenerateAllModal, setShowGenerateAllModal] = useState(false);
-  const [availableIPCount, setAvailableIPCount] = useState<number | null>(null);
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value);
@@ -67,73 +64,6 @@ export const Home: React.FC = () => {
       console.error('Error generating proxies:', error);
     }
     setLoading(false);
-  };
-
-  const handleGenerateAllClick = async () => {
-    if (!user) return;
-
-    try {
-      // Check for available proxies first
-      const { data: availableProxies, error } = await supabase
-        .from('proxies')
-        .select('*', { count: 'exact' })
-        .eq('is_used', false);
-
-      if (error) throw error;
-
-      setAvailableIPCount(availableProxies?.length || 0);
-      setShowGenerateAllModal(true);
-    } catch (error) {
-      console.error('Error checking available IPs:', error);
-      toast.error('Error checking available IPs');
-    }
-  };
-
-  const handleGenerateAllConfirm = () => {
-    setShowGenerateAllModal(false);
-    generateAllRemainingProxies();
-  };
-
-  const generateAllRemainingProxies = async () => {
-    if (!user) return;
-    
-    setLoadingAll(true);
-    try {
-      // Check for available proxies
-      const { data: availableProxies, error } = await supabase
-        .from('proxies')
-        .select('*')
-        .eq('is_used', false);
-
-      if (error) throw error;
-
-      if (!availableProxies || availableProxies.length === 0) {
-        toast.error('No IPs available');
-        setLoadingAll(false);
-        return;
-      }
-
-      // Check if any of these proxies are being used by others
-      const proxyIds = availableProxies.map(p => p.id);
-      const { data: updatedProxies } = await supabase
-        .from('proxies')
-        .select('*')
-        .in('id', proxyIds)
-        .eq('is_used', false);
-
-      if (!updatedProxies || updatedProxies.length === 0) {
-        toast.error('Other users are using these IPs. Please try again.');
-        setLoadingAll(false);
-        return;
-      }
-
-      setProxies(updatedProxies);
-      toast.success(`${updatedProxies.length} IPs generated successfully`);
-    } catch (error) {
-      toast.error('Error generating IPs');
-      console.error('Error generating all proxies:', error);
-    }
-    setLoadingAll(false);
   };
 
   const markProxiesAsUsed = async () => {
@@ -289,7 +219,7 @@ export const Home: React.FC = () => {
             <div className="pt-6 flex space-x-3">
               <button
                 onClick={generateProxies}
-                disabled={loading || loadingAll}
+                disabled={loading}
                 className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {loading ? (
@@ -299,24 +229,6 @@ export const Home: React.FC = () => {
                   </div>
                 ) : (
                   'Generate IPs'
-                )}
-              </button>
-
-              <button
-                onClick={handleGenerateAllClick}
-                disabled={loading || loadingAll}
-                className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
-              >
-                {loadingAll ? (
-                  <div className="flex items-center space-x-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    <span>Generating All...</span>
-                  </div>
-                ) : (
-                  <>
-                    <Zap className="w-4 h-4" />
-                    <span>Generate All Available</span>
-                  </>
                 )}
               </button>
             </div>
@@ -370,51 +282,6 @@ export const Home: React.FC = () => {
                   <strong>Warning:</strong> IPs will be deleted from the database after downloading. 
                   Make sure to download the IPs you need.
                 </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Generate All Modal */}
-        {showGenerateAllModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 transform transition-all">
-              <div className="text-center">
-                <Zap className="w-12 h-12 text-green-500 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  সমস্ত IP জেনারেট করুন
-                </h3>
-                
-                {availableIPCount !== null ? (
-                  <>
-                    <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-4">
-                      <p className="text-blue-700 text-sm">
-                        বর্তমানে <span className="font-bold">{availableIPCount}টি</span> IP পাওয়া যাচ্ছে।
-                      </p>
-                      <p className="text-blue-700 text-sm mt-1">আপনি কি এই সব IP জেনারেট করতে চান?</p>
-                    </div>
-                  </>
-                ) : (
-                  <p className="text-sm text-gray-500 mb-6">
-                    আপনি কি নিশ্চিত যে আপনি সব উপলব্ধ IP জেনারেট করতে চান?
-                  </p>
-                )}
-
-                <div className="flex space-x-3 justify-center">
-                  <button
-                    onClick={() => setShowGenerateAllModal(false)}
-                    className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                  >
-                    বাতিল করুন
-                  </button>
-                  <button
-                    onClick={handleGenerateAllConfirm}
-                    className="px-4 py-2 border border-transparent rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 flex items-center space-x-2"
-                  >
-                    <Zap className="w-4 h-4" />
-                    <span>জেনারেট করুন</span>
-                  </button>
-                </div>
               </div>
             </div>
           </div>
