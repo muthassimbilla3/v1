@@ -14,6 +14,7 @@ export type User = {
   username: string;
   access_key: string;
   role: 'admin' | 'manager' | 'user';
+  daily_limit?: number;
   is_active: boolean;
   created_at: string;
 };
@@ -31,5 +32,14 @@ export type UsageLog = {
   id: string;
   user_id: string;
   amount: number;
+  created_at: string;
+};
+
+export type UploadHistory = {
+  id: string;
+  uploaded_by: string;
+  file_name: string;
+  proxy_count: number;
+  position: 'prepend' | 'append';
   created_at: string;
 };
