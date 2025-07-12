@@ -5,9 +5,6 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Layout } from './components/Layout';
 import { Login } from './components/Login';
 import { Home } from './pages/Home';
-import { Profile } from './pages/Profile';
-import { Admin } from './pages/Admin';
-import { Status } from './pages/Status';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, loading } = useAuth();
@@ -34,22 +31,7 @@ const AppRoutes: React.FC = () => {
     <Routes>
       <Route path="/" element={
         <ProtectedRoute>
-          {user?.role === 'user' ? <Home /> : <Navigate to="/admin" replace />}
-        </ProtectedRoute>
-      } />
-      <Route path="/profile" element={
-        <ProtectedRoute>
-          {user?.role === 'user' ? <Profile /> : <Navigate to="/admin" replace />}
-        </ProtectedRoute>
-      } />
-      <Route path="/admin" element={
-        <ProtectedRoute>
-          <Admin />
-        </ProtectedRoute>
-      } />
-      <Route path="/status" element={
-        <ProtectedRoute>
-          <Status />
+          <Home />
         </ProtectedRoute>
       } />
       <Route path="*" element={<Navigate to="/" replace />} />
